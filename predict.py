@@ -1,32 +1,21 @@
-"""Submission interface — this is what Gobblecube's grader imports.
-
-The grader will call `predict` once per held-out request. The signature below
-is fixed; everything else (model type, preprocessing, etc.) is yours to change.
-"""
+"""Submission interface — this is what Gobblecube's grader imports."""
 
 from __future__ import annotations
 
 import pickle
-from datetime import datetime
 from pathlib import Path
 
-import numpy as np
+_MODEL_PATH = Path(__file__).parent / "lookup_model.pkl"
 
-_MODEL_PATH = Path(__file__).parent / "model.pkl"
-
+# Load the dictionary at module import time (happens once)
 with open(_MODEL_PATH, "rb") as _f:
     _MODEL = pickle.load(_f)
-# Disable xgboost's feature-name validation so we can predict on a bare
-# numpy array (skips per-call DataFrame construction overhead).
-if hasattr(_MODEL, "get_booster"):
-    _MODEL.get_booster().feature_names = None
 
-# Feature order must match baseline.py:
-#   pickup_zone, dropoff_zone, hour, dow, month, passenger_count
-
+_ZONE_MEDIANS = _MODEL["zone_medians"]
+_GLOBAL_MEDIAN = _MODEL["global_median"]
 
 def predict(request: dict) -> float:
-    """Predict trip duration in seconds.
+    """Predict trip duration in seconds using a simple dictionary lookup.
 
     Input schema:
         {
@@ -36,16 +25,9 @@ def predict(request: dict) -> float:
             "passenger_count": int,
         }
     """
-    ts = datetime.fromisoformat(request["requested_at"])
-    x = np.array(
-        [[
-            int(request["pickup_zone"]),
-            int(request["dropoff_zone"]),
-            ts.hour,
-            ts.weekday(),
-            ts.month,
-            int(request["passenger_count"]),
-        ]],
-        dtype=np.int32,
-    )
-    return float(_MODEL.predict(x)[0])
+    pickup = int(request["pickup_zone"])
+    dropoff = int(request["dropoff_zone"])
+
+    # Attempt to look up the specific zone pair.
+    # If the pair was never seen in training data, fall back to the global median.
+    return float(_ZONE_MEDIANS.get((pickup, dropoff), _GLOBAL_MEDIAN))
