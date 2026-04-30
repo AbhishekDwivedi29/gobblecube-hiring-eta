@@ -18,7 +18,8 @@ DATA_DIR = Path(__file__).parent / "data"
 MODEL_PATH = Path(__file__).parent / "lgbm_model.pkl"
 
 # We treat almost everything as a category!
-CATEGORICAL_FEATURES = ["pickup_zone", "dropoff_zone", "hour", "dow", "month"]
+# Add is_weekend to your categoricals
+CATEGORICAL_FEATURES = ["pickup_zone", "dropoff_zone", "hour", "dow", "month", "is_weekend"]
 NUMERIC_FEATURES = ["passenger_count"]
 FEATURES = CATEGORICAL_FEATURES + NUMERIC_FEATURES
 
@@ -32,6 +33,8 @@ def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
         "hour":            ts.dt.hour,
         "dow":             ts.dt.dayofweek,
         "month":           ts.dt.month,
+        # ADD THIS LINE: Checks if day is 5 (Sat) or 6 (Sun) and turns True/False into 1/0
+        "is_weekend":      ts.dt.dayofweek.isin([5, 6]).astype(int), 
         "passenger_count": df["passenger_count"].astype("int8"),
     })
     
