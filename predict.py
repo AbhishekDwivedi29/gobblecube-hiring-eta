@@ -9,7 +9,7 @@ from pathlib import Path
 import pandas as pd
 
 _DATA_DIR = Path(__file__).parent / "data"
-_MODEL_PATH = Path(__file__).parent / "lgbm_model.pkl"
+_MODEL_PATH = Path(__file__).parent / "lgbm_optuna_best_model.pkl"
 
 # 1. Load the model
 with open(_MODEL_PATH, "rb") as _f:
@@ -54,8 +54,8 @@ def predict(request: dict) -> float:
         "dow":             [polars_dow],
         "month":           [ts.month],
         "is_weekend":      [1 if polars_dow in [6, 7] else 0],
-        "passenger_count": [int(request["passenger_count"])],
-        "distance_km":     [distance_km]  # Added the new feature
+        # CRITICAL FIX: passenger_count removed to match the training script!
+        "distance_km":     [distance_km] 
     })
     
     # Apply category dtypes so LightGBM recognizes them natively
